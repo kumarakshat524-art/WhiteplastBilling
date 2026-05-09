@@ -67,10 +67,7 @@ const PolicyManagementInteractive = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header onSearch={handleSearch} />
-      <Sidebar 
-        isCollapsed={sidebarCollapsed} 
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} 
-      />
+      <Sidebar />
       
       <main className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'ml-0 lg:ml-64'} mt-16`}>
         <div className="p-6">

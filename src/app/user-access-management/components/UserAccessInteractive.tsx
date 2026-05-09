@@ -349,10 +349,7 @@ const UserAccessInteractive = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar 
-        isCollapsed={isSidebarCollapsed} 
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
-      />
+      <Sidebar />
       
       <main className={`
         transition-all duration-300 pt-16

@@ -307,10 +307,7 @@ const RiskMonitoringInteractive = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar 
-        isCollapsed={sidebarCollapsed} 
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} 
-      />
+      <Sidebar />
       
       <main className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'ml-0 lg:ml-64'} pt-16`}>
         <div className="flex">
