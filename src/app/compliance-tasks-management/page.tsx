@@ -14,10 +14,10 @@ export default function ComplianceTasksManagementPage() {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="flex pt-16">
-        <Sidebar />
+        <Sidebar onToggleCollapse={() => {}} />
         <main className="flex-1 ml-0 lg:ml-60">
           <div className="p-6">
-            <Breadcrumb />
+            <Breadcrumb items={[]} />
             <TasksInteractive />
           </div>
         </main>

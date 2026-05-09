@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import WhiteplastLayout from '@/components/whiteplast/WhiteplastLayout';
-import { ProductDB, CustomerDB, CustomerPriceDB, InvoiceDB, Product, Customer, SalesInvoice, nextInvoiceNumber, adjustStock, seedSampleData, numberToWords } from '@/lib/whiteplast-db';
-import { validateFullInvoice, validateInvoiceLine, getFieldError, ValidationError,  } from '@/lib/whiteplast-validation';
+import { ProductDB, CustomerDB, CustomerPriceDB, InvoiceDB, Product, Customer, SalesInvoice, adjustStock, seedSampleData, numberToWords } from '@/lib/whiteplast-db';
+import { validateFullInvoice, validateInvoiceLine, getFieldError, ValidationError } from '@/lib/whiteplast-validation';
+
+const NAVY = '#1a3a6b';
+const NAVY_LIGHT = '#e8eef7';
 
 interface LineItem {
   id: string;
@@ -30,6 +33,144 @@ function calcLine(line: Omit<LineItem, 'totalExGST' | 'taxAmount' | 'lineTotal'>
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
+// ─── Product Autocomplete Component ──────────────────────────────────────────
+interface ProductAutocompleteProps {
+  products: Product[];
+  line: LineItem;
+  customerId: string;
+  onUpdate: (lineId: string, field: string, value: string | number) => void;
+  onUpdateMultiple: (lineId: string, updates: Partial<LineItem>) => void;
+}
+
+function ProductAutocomplete({ products, line, customerId, onUpdate, onUpdateMultiple }: ProductAutocompleteProps) {
+  const [query, setQuery] = useState(line.productNameSnapshot || '');
+  const [open, setOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(-1);
+  const [isCustom, setIsCustom] = useState(!line.productId || line.productId === '__custom__');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const filtered = query.trim().length === 0
+    ? products.slice(0, 8)
+    : products.filter(p =>
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.packSize.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 8);
+
+  function selectProduct(p: Product) {
+    const rate = CustomerPriceDB.getPrice(customerId, p.id) ?? p.defaultPriceExGST;
+    setQuery(p.name);
+    setOpen(false);
+    setIsCustom(false);
+    setHighlighted(-1);
+    onUpdateMultiple(line.id, {
+      productId: p.id,
+      productNameSnapshot: p.name,
+      packSizeSnapshot: p.packSize,
+      hsnSnapshot: p.hsn,
+      rateExGST: rate,
+      cgstPct: p.cgstPct,
+      sgstPct: p.sgstPct,
+      igstPct: p.igstPct,
+    });
+  }
+
+  function handleInputChange(val: string) {
+    setQuery(val);
+    setOpen(true);
+    setHighlighted(-1);
+    // If user is typing freely, mark as custom product
+    setIsCustom(true);
+    onUpdateMultiple(line.id, {
+      productId: '__custom__',
+      productNameSnapshot: val,
+    });
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!open) { if (e.key === 'ArrowDown') setOpen(true); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlighted(h => Math.min(h + 1, filtered.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlighted(h => Math.max(h - 1, -1)); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlighted >= 0 && filtered[highlighted]) selectProduct(filtered[highlighted]);
+      else setOpen(false);
+    }
+    else if (e.key === 'Escape') setOpen(false);
+  }
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Sync query when line changes externally
+  useEffect(() => {
+    setQuery(line.productNameSnapshot || '');
+  }, [line.productNameSnapshot]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        placeholder="Type product name..."
+        onChange={e => handleInputChange(e.target.value)}
+        onFocus={() => setOpen(true)}
+        onKeyDown={handleKeyDown}
+        className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1"
+        style={{ '--tw-ring-color': NAVY } as React.CSSProperties}
+      />
+      {open && (
+        <div className="absolute left-0 top-full mt-0.5 w-72 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+          {filtered.length > 0 ? (
+            filtered.map((p, idx) => (
+              <div
+                key={p.id}
+                onMouseDown={() => selectProduct(p)}
+                className="px-3 py-2 cursor-pointer text-xs hover:text-white transition-colors"
+                style={{ backgroundColor: idx === highlighted ? NAVY : undefined, color: idx === highlighted ? 'white' : undefined }}
+                onMouseEnter={() => setHighlighted(idx)}
+              >
+                <div className="font-medium">{p.name}</div>
+                <div className="text-gray-400" style={{ color: idx === highlighted ? '#c8d8f0' : undefined }}>{p.packSize} · HSN: {p.hsn} · ₹{p.defaultPriceExGST}</div>
+              </div>
+            ))
+          ) : (
+            <div className="px-3 py-2 text-xs text-gray-400 italic">No matches — using as custom product</div>
+          )}
+        </div>
+      )}
+      {/* Custom product extra fields */}
+      {isCustom && line.productId === '__custom__' && (
+        <div className="mt-1.5 grid grid-cols-2 gap-1">
+          <input
+            type="text"
+            placeholder="Pack Size"
+            value={line.packSizeSnapshot}
+            onChange={e => onUpdate(line.id, 'packSizeSnapshot', e.target.value)}
+            className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1"
+          />
+          <input
+            type="text"
+            placeholder="HSN (optional)"
+            value={line.hsnSnapshot}
+            onChange={e => onUpdate(line.id, 'hsnSnapshot', e.target.value)}
+            className="border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1"
+          />
+        </div>
+      )}
+      {!isCustom && <div className="text-gray-400 mt-0.5 pl-1 text-xs">HSN: {line.hsnSnapshot}</div>}
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 export default function InvoiceCreateInteractive() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -83,7 +224,8 @@ export default function InvoiceCreateInteractive() {
         })));
       }
     } else {
-      setInvoiceNumber(nextInvoiceNumber());
+      // Leave invoiceNumber empty — user types manually
+      setInvoiceNumber('');
       if (custs.length > 0) {
         setCustomerId(custs[0].id);
         setPlaceOfSupply(custs[0].state);
@@ -123,13 +265,10 @@ export default function InvoiceCreateInteractive() {
   }
 
   function addLine() {
-    if (products.length === 0) return;
-    const p = products[0];
-    const rate = CustomerPriceDB.getPrice(customerId, p.id) ?? p.defaultPriceExGST;
     const newLine = calcLine({
-      id: uid(), productId: p.id,
-      productNameSnapshot: p.name, packSizeSnapshot: p.packSize, hsnSnapshot: p.hsn,
-      quantity: 1, rateExGST: rate, cgstPct: p.cgstPct, sgstPct: p.sgstPct, igstPct: p.igstPct,
+      id: uid(), productId: '',
+      productNameSnapshot: '', packSizeSnapshot: '', hsnSnapshot: '',
+      quantity: 1, rateExGST: 0, cgstPct: 9, sgstPct: 9, igstPct: 0,
     });
     setLines(prev => [...prev, newLine]);
   }
@@ -138,23 +277,6 @@ export default function InvoiceCreateInteractive() {
     setLines(prev => prev.map(line => {
       if (line.id !== lineId) return line;
       let updated = { ...line, [field]: value };
-
-      if (field === 'productId') {
-        const p = products.find(x => x.id === value);
-        if (p) {
-          const rate = CustomerPriceDB.getPrice(customerId, p.id) ?? p.defaultPriceExGST;
-          updated = {
-            ...updated,
-            productNameSnapshot: p.name,
-            packSizeSnapshot: p.packSize,
-            hsnSnapshot: p.hsn,
-            rateExGST: rate,
-            cgstPct: p.cgstPct,
-            sgstPct: p.sgstPct,
-            igstPct: p.igstPct,
-          };
-        }
-      }
 
       // Clamp values to valid ranges before recalculating
       if (field === 'quantity') updated.quantity = Math.max(1, Math.floor(Number(value) || 1));
@@ -166,7 +288,6 @@ export default function InvoiceCreateInteractive() {
 
       const recalculated = calcLine(updated);
 
-      // Validate this line and update errors
       const lineValidationErrors = validateInvoiceLine({
         productId: recalculated.productId,
         quantity: recalculated.quantity,
@@ -181,6 +302,14 @@ export default function InvoiceCreateInteractive() {
 
       setLineErrors(errs => ({ ...errs, [lineId]: lineValidationErrors }));
       return recalculated;
+    }));
+  }
+
+  function updateLineMultiple(lineId: string, updates: Partial<LineItem>) {
+    setLines(prev => prev.map(line => {
+      if (line.id !== lineId) return line;
+      const merged = { ...line, ...updates };
+      return calcLine(merged);
     }));
   }
 
@@ -230,7 +359,7 @@ export default function InvoiceCreateInteractive() {
 
     const result = validateFullInvoice({
       header: { invoiceNumber, date, customerId, placeOfSupply },
-      lines: lines.map((l, i) => ({
+      lines: lines.map((l) => ({
         productId: l.productId, quantity: l.quantity, rateExGST: l.rateExGST,
         cgstPct: l.cgstPct, sgstPct: l.sgstPct, igstPct: l.igstPct,
         totalExGST: l.totalExGST, taxAmount: l.taxAmount, lineTotal: l.lineTotal,
@@ -241,7 +370,6 @@ export default function InvoiceCreateInteractive() {
     if (!result.valid) {
       setHeaderErrors(result.errors.filter(e => ['invoiceNumber', 'date', 'customerId', 'placeOfSupply'].includes(e.field)));
       setGlobalErrors(result.errors.filter(e => ['lines', 'subtotalExGST', 'grandTotal'].includes(e.field)));
-      // Scroll to top to show errors
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -255,7 +383,9 @@ export default function InvoiceCreateInteractive() {
       const inv = InvoiceDB.add(data);
       if (!isDraft) {
         lines.forEach(l => {
-          adjustStock(l.productId, -l.quantity, `Sold via invoice ${invoiceNumber}`, inv.id, invoiceNumber);
+          if (l.productId && l.productId !== '__custom__') {
+            adjustStock(l.productId, -l.quantity, `Sold via invoice ${invoiceNumber}`, inv.id, invoiceNumber);
+          }
         });
       }
     }
@@ -271,11 +401,13 @@ export default function InvoiceCreateInteractive() {
 
   function f(v: number) { return v.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
-  // Collect all line errors for display
   const allLineErrors = Object.values(lineErrors).flat();
   const hasAnyErrors = headerErrors.length > 0 || allLineErrors.length > 0 || globalErrors.length > 0;
 
   if (!mounted) return null;
+
+  const navyBtnClass = 'text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50';
+  const navyOutlineClass = 'border text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50';
 
   return (
     <WhiteplastLayout>
@@ -283,16 +415,18 @@ export default function InvoiceCreateInteractive() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{editId ? 'Edit Invoice' : 'New Invoice'}</h1>
+            <h1 className="text-2xl font-bold" style={{ color: NAVY }}>{editId ? 'Edit Invoice' : 'New Invoice'}</h1>
             <p className="text-sm text-gray-500">GST Tax Invoice</p>
           </div>
           <div className="flex gap-2">
             <button onClick={() => handleSave(true)} disabled={saving}
-              className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+              className={navyOutlineClass}
+              style={{ borderColor: NAVY, color: NAVY }}>
               Save as Draft
             </button>
             <button onClick={() => handleSave(false)} disabled={saving}
-              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50">
+              className={navyBtnClass}
+              style={{ backgroundColor: NAVY }}>
               💾 Save & Print
             </button>
           </div>
@@ -311,14 +445,16 @@ export default function InvoiceCreateInteractive() {
         )}
 
         {/* Invoice Meta */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Invoice Details</h2>
+        <div className="bg-white rounded-xl border shadow-sm p-5" style={{ borderColor: '#d1dce8' }}>
+          <h2 className="text-sm font-semibold mb-4" style={{ color: NAVY }}>Invoice Details</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Invoice Number — plain empty text input */}
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Invoice Number *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: NAVY }}>Invoice No. *</label>
               <input
                 type="text"
                 value={invoiceNumber}
+                placeholder="e.g. 101, 2024-001"
                 onChange={e => {
                   setInvoiceNumber(e.target.value);
                   if (saveAttempted) validateHeader(customerId, date, placeOfSupply);
@@ -326,15 +462,16 @@ export default function InvoiceCreateInteractive() {
                 maxLength={50}
                 className={`w-full border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 ${
                   saveAttempted && getFieldError(headerErrors, 'invoiceNumber')
-                    ? 'border-red-400 focus:ring-red-300 bg-red-50' :'border-gray-200 focus:ring-orange-400'
+                    ? 'border-red-400 focus:ring-red-300 bg-red-50' : 'border-gray-200'
                 }`}
+                style={!(saveAttempted && getFieldError(headerErrors, 'invoiceNumber')) ? { '--tw-ring-color': NAVY } as React.CSSProperties : undefined}
               />
               {saveAttempted && getFieldError(headerErrors, 'invoiceNumber') && (
                 <p className="text-xs text-red-600 mt-1">{getFieldError(headerErrors, 'invoiceNumber')}</p>
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Date *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: NAVY }}>Date *</label>
               <input
                 type="date"
                 value={date}
@@ -344,7 +481,7 @@ export default function InvoiceCreateInteractive() {
                 }}
                 className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${
                   saveAttempted && getFieldError(headerErrors, 'date')
-                    ? 'border-red-400 focus:ring-red-300 bg-red-50' :'border-gray-200 focus:ring-orange-400'
+                    ? 'border-red-400 focus:ring-red-300 bg-red-50' : 'border-gray-200'
                 }`}
               />
               {saveAttempted && getFieldError(headerErrors, 'date') && (
@@ -352,13 +489,13 @@ export default function InvoiceCreateInteractive() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Customer *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: NAVY }}>Customer *</label>
               <select
                 value={customerId}
                 onChange={e => handleCustomerChange(e.target.value)}
                 className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 bg-white ${
                   saveAttempted && getFieldError(headerErrors, 'customerId')
-                    ? 'border-red-400 focus:ring-red-300 bg-red-50' :'border-gray-200 focus:ring-orange-400'
+                    ? 'border-red-400 focus:ring-red-300 bg-red-50' : 'border-gray-200'
                 }`}
               >
                 <option value="">— Select Customer —</option>
@@ -369,7 +506,7 @@ export default function InvoiceCreateInteractive() {
               )}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Place of Supply *</label>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: NAVY }}>Place of Supply *</label>
               <input
                 type="text"
                 value={placeOfSupply}
@@ -379,7 +516,7 @@ export default function InvoiceCreateInteractive() {
                 }}
                 className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${
                   saveAttempted && getFieldError(headerErrors, 'placeOfSupply')
-                    ? 'border-red-400 focus:ring-red-300 bg-red-50' :'border-gray-200 focus:ring-orange-400'
+                    ? 'border-red-400 focus:ring-red-300 bg-red-50' : 'border-gray-200'
                 }`}
               />
               {saveAttempted && getFieldError(headerErrors, 'placeOfSupply') && (
@@ -388,17 +525,17 @@ export default function InvoiceCreateInteractive() {
             </div>
           </div>
           {selectedCustomer && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100 text-xs text-blue-700">
+            <div className="mt-4 p-3 rounded-lg border text-xs" style={{ backgroundColor: NAVY_LIGHT, borderColor: NAVY, color: NAVY }}>
               <strong>{selectedCustomer.name}</strong> · {selectedCustomer.address} · GSTIN: {selectedCustomer.gstin || 'N/A'} · {selectedCustomer.state}
             </div>
           )}
         </div>
 
         {/* Line Items */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden" style={{ borderColor: '#d1dce8' }}>
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-700">Line Items</h2>
-            <button onClick={addLine} className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+            <h2 className="text-sm font-semibold" style={{ color: NAVY }}>Line Items</h2>
+            <button onClick={addLine} className="text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors" style={{ backgroundColor: NAVY }}>
               + Add Item
             </button>
           </div>
@@ -410,22 +547,22 @@ export default function InvoiceCreateInteractive() {
               {saveAttempted && globalErrors.find(e => e.field === 'lines') && (
                 <p className="text-sm text-red-600 mt-2 font-medium">⚠️ {globalErrors.find(e => e.field === 'lines')?.message}</p>
               )}
-              <button onClick={addLine} className="mt-3 text-orange-600 hover:underline text-sm font-medium">Add first item</button>
+              <button onClick={addLine} className="mt-3 hover:underline text-sm font-medium" style={{ color: NAVY }}>Add first item</button>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left px-3 py-2.5 font-semibold text-gray-600 min-w-[180px]">Product</th>
-                    <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-20">Qty</th>
-                    <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Rate (ex-GST)</th>
-                    <th className="text-center px-3 py-2.5 font-semibold text-gray-600 w-20">CGST%</th>
-                    <th className="text-center px-3 py-2.5 font-semibold text-gray-600 w-20">SGST%</th>
-                    <th className="text-center px-3 py-2.5 font-semibold text-gray-600 w-20">IGST%</th>
-                    <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Total (ex-GST)</th>
-                    <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Tax Amt</th>
-                    <th className="text-right px-3 py-2.5 font-semibold text-gray-600 w-24">Line Total</th>
+                  <tr className="border-b border-gray-200" style={{ backgroundColor: NAVY_LIGHT }}>
+                    <th className="text-left px-3 py-2.5 font-semibold min-w-[200px]" style={{ color: NAVY }}>Product</th>
+                    <th className="text-right px-3 py-2.5 font-semibold w-20" style={{ color: NAVY }}>Qty</th>
+                    <th className="text-right px-3 py-2.5 font-semibold w-24" style={{ color: NAVY }}>Rate (ex-GST)</th>
+                    <th className="text-center px-3 py-2.5 font-semibold w-20" style={{ color: NAVY }}>CGST%</th>
+                    <th className="text-center px-3 py-2.5 font-semibold w-20" style={{ color: NAVY }}>SGST%</th>
+                    <th className="text-center px-3 py-2.5 font-semibold w-20" style={{ color: NAVY }}>IGST%</th>
+                    <th className="text-right px-3 py-2.5 font-semibold w-24" style={{ color: NAVY }}>Total (ex-GST)</th>
+                    <th className="text-right px-3 py-2.5 font-semibold w-24" style={{ color: NAVY }}>Tax Amt</th>
+                    <th className="text-right px-3 py-2.5 font-semibold w-24" style={{ color: NAVY }}>Line Total</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
@@ -441,11 +578,13 @@ export default function InvoiceCreateInteractive() {
                       <React.Fragment key={line.id}>
                         <tr className={`hover:bg-gray-50 ${hasErr ? 'bg-red-50/30' : ''}`}>
                           <td className="px-3 py-2">
-                            <select value={line.productId} onChange={e => updateLine(line.id, 'productId', e.target.value)}
-                              className="w-full border border-gray-200 rounded px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-400 bg-white">
-                              {products.map(p => <option key={p.id} value={p.id}>{p.name} ({p.packSize})</option>)}
-                            </select>
-                            <div className="text-gray-400 mt-0.5 pl-1">HSN: {line.hsnSnapshot}</div>
+                            <ProductAutocomplete
+                              products={products}
+                              line={line}
+                              customerId={customerId}
+                              onUpdate={updateLine}
+                              onUpdateMultiple={updateLineMultiple}
+                            />
                           </td>
                           <td className="px-3 py-2">
                             <input
@@ -455,7 +594,7 @@ export default function InvoiceCreateInteractive() {
                               step="1"
                               onChange={e => updateLine(line.id, 'quantity', parseFloat(e.target.value) || 1)}
                               className={`w-full border rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 ${
-                                qtyErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200 focus:ring-orange-400'
+                                qtyErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200'
                               }`}
                             />
                           </td>
@@ -467,7 +606,7 @@ export default function InvoiceCreateInteractive() {
                               step="0.01"
                               onChange={e => updateLine(line.id, 'rateExGST', parseFloat(e.target.value) || 0)}
                               className={`w-full border rounded px-2 py-1.5 text-xs text-right focus:outline-none focus:ring-1 ${
-                                rateErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200 focus:ring-orange-400'
+                                rateErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200'
                               }`}
                             />
                           </td>
@@ -475,12 +614,10 @@ export default function InvoiceCreateInteractive() {
                             <input
                               type="number"
                               value={line.cgstPct}
-                              min="0"
-                              max="28"
-                              step="0.5"
+                              min="0" max="28" step="0.5"
                               onChange={e => updateLine(line.id, 'cgstPct', parseFloat(e.target.value) || 0)}
                               className={`w-full border rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-1 ${
-                                gstErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200 focus:ring-orange-400'
+                                gstErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200'
                               }`}
                             />
                           </td>
@@ -488,12 +625,10 @@ export default function InvoiceCreateInteractive() {
                             <input
                               type="number"
                               value={line.sgstPct}
-                              min="0"
-                              max="28"
-                              step="0.5"
+                              min="0" max="28" step="0.5"
                               onChange={e => updateLine(line.id, 'sgstPct', parseFloat(e.target.value) || 0)}
                               className={`w-full border rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-1 ${
-                                gstErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200 focus:ring-orange-400'
+                                gstErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200'
                               }`}
                             />
                           </td>
@@ -501,12 +636,10 @@ export default function InvoiceCreateInteractive() {
                             <input
                               type="number"
                               value={line.igstPct}
-                              min="0"
-                              max="28"
-                              step="0.5"
+                              min="0" max="28" step="0.5"
                               onChange={e => updateLine(line.id, 'igstPct', parseFloat(e.target.value) || 0)}
                               className={`w-full border rounded px-2 py-1.5 text-xs text-center focus:outline-none focus:ring-1 ${
-                                gstErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200 focus:ring-orange-400'
+                                gstErr ? 'border-red-400 bg-red-50 focus:ring-red-300' : 'border-gray-200'
                               }`}
                             />
                           </td>
@@ -517,7 +650,6 @@ export default function InvoiceCreateInteractive() {
                             <button onClick={() => removeLine(line.id)} className="text-red-400 hover:text-red-600 transition-colors text-base">✕</button>
                           </td>
                         </tr>
-                        {/* Inline line error row */}
                         {hasErr && (
                           <tr className="bg-red-50">
                             <td colSpan={10} className="px-3 py-1.5">
@@ -540,7 +672,7 @@ export default function InvoiceCreateInteractive() {
 
         {/* Totals */}
         {lines.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div className="bg-white rounded-xl border shadow-sm p-5" style={{ borderColor: '#d1dce8' }}>
             <div className="flex justify-end">
               <div className="w-full max-w-sm space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
@@ -565,14 +697,13 @@ export default function InvoiceCreateInteractive() {
                     <span>₹{f(igstTotal)}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-bold text-lg text-gray-900 pt-2 border-t border-gray-200">
+                <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-200" style={{ color: NAVY }}>
                   <span>Grand Total</span>
-                  <span className="text-orange-700">₹{f(grandTotal)}</span>
+                  <span>₹{f(grandTotal)}</span>
                 </div>
                 <div className="text-xs text-gray-500 italic pt-1">
                   {numberToWords(grandTotal)}
                 </div>
-                {/* Grand total validation warning */}
                 {saveAttempted && globalErrors.find(e => e.field === 'grandTotal') && (
                   <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
                     ⚠️ {globalErrors.find(e => e.field === 'grandTotal')?.message}
@@ -589,11 +720,13 @@ export default function InvoiceCreateInteractive() {
             Cancel
           </button>
           <button onClick={() => handleSave(true)} disabled={saving}
-            className="border border-orange-300 text-orange-700 hover:bg-orange-50 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50">
+            className="border px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            style={{ borderColor: NAVY, color: NAVY }}>
             Save as Draft
           </button>
           <button onClick={() => handleSave(false)} disabled={saving}
-            className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50">
+            className="text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-sm disabled:opacity-50"
+            style={{ backgroundColor: NAVY }}>
             💾 Save & Print
           </button>
         </div>

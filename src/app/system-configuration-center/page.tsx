@@ -13,7 +13,7 @@ export default function SystemConfigurationCenterPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar />
+      <Sidebar onToggleCollapse={() => {}} />
       
       <main className="lg:ml-64 pt-16">
         <div className="p-6 space-y-6">

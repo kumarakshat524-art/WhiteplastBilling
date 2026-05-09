@@ -26,6 +26,7 @@ interface SecuritySettings {
 const UserProfilePage = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity'>('profile');
   const [isEditing, setIsEditing] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   const [userProfile, setUserProfile] = useState<UserProfile>({
     id: 'usr_001',
@@ -121,7 +122,7 @@ const UserProfilePage = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="flex">
-        <Sidebar />
+        <Sidebar onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
         <main className="flex-1 ml-64 pt-16">
           <div className="p-8">
             {/* Page Header */}

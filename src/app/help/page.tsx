@@ -167,7 +167,7 @@ const HelpPage = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="flex">
-        <Sidebar />
+        <Sidebar onToggleCollapse={() => {}} />
         <main className="flex-1 ml-64 pt-16">
           <div className="p-8">
             {/* Page Header */}

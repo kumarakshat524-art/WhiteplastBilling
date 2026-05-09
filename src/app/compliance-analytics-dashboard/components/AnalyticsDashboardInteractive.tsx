@@ -362,7 +362,7 @@ const AnalyticsDashboardInteractive = ({}: AnalyticsDashboardInteractiveProps) =
         <div className="p-6">
           {/* Header Section */}
           <div className="mb-6">
-            <Breadcrumb />
+            <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Compliance Analytics Dashboard' }]} />
             <div className="flex items-center justify-between mt-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">Compliance Analytics Dashboard</h1>

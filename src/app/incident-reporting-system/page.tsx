@@ -13,12 +13,12 @@ export default function IncidentReportingSystemPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar />
+      <Sidebar onToggleCollapse={() => {}} />
       
       <main className="lg:ml-64 pt-16">
         <div className="p-6">
           <div className="mb-6">
-            <Breadcrumb />
+            <Breadcrumb items={[]} />
             <div className="mt-4">
               <h1 className="text-2xl font-bold text-foreground">Incident Reporting System</h1>
               <p className="text-muted-foreground mt-1">

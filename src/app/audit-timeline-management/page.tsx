@@ -13,13 +13,13 @@ export default function AuditTimelineManagementPage() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar />
+      <Sidebar onToggleCollapse={() => {}} />
       
       <main className="lg:ml-64 pt-16">
         <div className="p-6">
           {/* Breadcrumb */}
           <div className="mb-6">
-            <Breadcrumb />
+            <Breadcrumb items={[]} />
           </div>
 
           {/* Page Header */}

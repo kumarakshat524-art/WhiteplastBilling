@@ -327,7 +327,7 @@ const RiskMonitoringInteractive = () => {
           {/* Main Content */}
           <div className="flex-1 p-6">
             <div className="mb-6">
-              <Breadcrumb />
+              <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Risk Monitoring' }]} />
               <div className="flex items-center justify-between mt-4">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">Risk Monitoring Dashboard</h1>

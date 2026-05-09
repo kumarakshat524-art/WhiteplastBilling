@@ -288,7 +288,7 @@ const DashboardInteractive = ({}: DashboardInteractiveProps) => {
         <div className="p-6">
           {/* Breadcrumb */}
           <div className="mb-6">
-            <Breadcrumb />
+            <Breadcrumb items={[{ label: 'Dashboard', href: '/' }]} />
           </div>
 
           {/* Page Header */}

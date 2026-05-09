@@ -202,7 +202,7 @@ const AuditInteractive = () => {
       id: '1',
       name: 'Sarah Johnson',
       role: 'Lead Auditor',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_19c152708-1762274558818.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_16567411f-1763294952544.png",
       alt: 'Professional headshot of Sarah Johnson, lead auditor with brown hair in business attire',
       email: 'sarah.johnson@company.com',
       workload: 85
@@ -222,12 +222,12 @@ const AuditInteractive = () => {
     status: 'submitted',
     assignee: {
       name: 'Michael Chen',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_11e65badd-1762273612475.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_179ebd6f2-1763294255544.png",
       alt: 'Professional headshot of Michael Chen, senior auditor in navy suit with glasses'
     },
     reviewer: {
       name: 'Sarah Johnson',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_117c073be-1762273781803.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_16567411f-1763294952544.png",
       alt: 'Professional headshot of Sarah Johnson, lead auditor with brown hair in business attire'
     },
     dueDate: new Date('2024-11-20'),
@@ -244,12 +244,12 @@ const AuditInteractive = () => {
     status: 'in-review',
     assignee: {
       name: 'Emily Rodriguez',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_19c152708-1762274558818.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1bb5d2cb2-1763294526193.png",
       alt: 'Professional headshot of Emily Rodriguez, compliance specialist with long dark hair'
     },
     reviewer: {
       name: 'Michael Chen',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_11e65badd-1762273612475.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_179ebd6f2-1763294255544.png",
       alt: 'Professional headshot of Michael Chen, senior auditor in navy suit with glasses'
     },
     dueDate: new Date('2024-11-25'),
@@ -266,7 +266,7 @@ const AuditInteractive = () => {
     status: 'overdue',
     assignee: {
       name: 'David Kim',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1d8751e58-1762274322225.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_179bed4fe-1763291985213.png",
       alt: 'Professional headshot of David Kim, IT security specialist in dark suit'
     },
     dueDate: new Date('2024-11-12'),
@@ -282,12 +282,12 @@ const AuditInteractive = () => {
     status: 'approved',
     assignee: {
       name: 'Lisa Wang',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1a7390ff6-1762273732548.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_19088e8d5-1763298243530.png",
       alt: 'Professional headshot of Lisa Wang, risk analyst with short black hair in blazer'
     },
     reviewer: {
       name: 'Sarah Johnson',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_19c152708-1762274558818.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_16567411f-1763294952544.png",
       alt: 'Professional headshot of Sarah Johnson, lead auditor with brown hair in business attire'
     },
     dueDate: new Date('2024-11-10'),
@@ -304,7 +304,7 @@ const AuditInteractive = () => {
     status: 'pending',
     assignee: {
       name: 'James Thompson',
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1d9a492a6-1762249014951.png",
+      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1427a49c8-1763294992390.png",
       alt: 'Professional headshot of James Thompson, operations manager with beard in business casual'
     },
     dueDate: new Date('2024-11-30'),
