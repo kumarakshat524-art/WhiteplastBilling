@@ -98,7 +98,7 @@ const AuditSidebar = ({
     id: '1',
     name: 'Sarah Johnson',
     role: 'Lead Auditor',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_19c152708-1762274558818.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_16567411f-1763294952544.png",
     alt: 'Professional headshot of Sarah Johnson, lead auditor with brown hair in business attire',
     email: 'sarah.johnson@company.com',
     workload: 85
@@ -107,7 +107,7 @@ const AuditSidebar = ({
     id: '2',
     name: 'Michael Chen',
     role: 'Senior Auditor',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_117aaa114-1762274366119.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_179ebd6f2-1763294255544.png",
     alt: 'Professional headshot of Michael Chen, senior auditor in navy suit with glasses',
     email: 'michael.chen@company.com',
     workload: 72
@@ -116,7 +116,7 @@ const AuditSidebar = ({
     id: '3',
     name: 'Emily Rodriguez',
     role: 'Compliance Specialist',
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1beb9fc75-1762273370028.png",
+    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1bb5d2cb2-1763294526193.png",
     alt: 'Professional headshot of Emily Rodriguez, compliance specialist with long dark hair',
     email: 'emily.rodriguez@company.com',
     workload: 68

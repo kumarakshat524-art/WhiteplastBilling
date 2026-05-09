@@ -575,6 +575,7 @@ const IncidentReportingInteractive = () => {
           selectedIncidents={selectedIncidents}
           onIncidentSelect={handleIncidentSelect}
           onBulkAction={handleBulkAction}
+          onIncidentClick={(incident) => console.log('Incident clicked:', incident)}
         />
       </div>
 

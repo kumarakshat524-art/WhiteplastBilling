@@ -14,18 +14,15 @@ interface NavigationItem {
 }
 
 interface SidebarProps {
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
   className?: string;
 }
 
-const Sidebar = ({
-  isCollapsed = false,
-  onToggleCollapse,
-  className = ''
-}: SidebarProps) => {
+const Sidebar = ({ className = '' }: SidebarProps) => {
   const pathname = usePathname();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const onToggleCollapse = () => setIsCollapsed(prev => !prev);
 
   const navigationItems: NavigationItem[] = [
     {
@@ -93,9 +90,7 @@ const Sidebar = ({
     },
   ];
 
-  const isActive = (path: string) => {
-    return pathname === path;
-  };
+  const isActive = (path: string) => pathname === path;
 
   const getBadgeColor = (path: string) => {
     if (path.includes('risk') || path.includes('incident')) {
@@ -111,13 +106,13 @@ const Sidebar = ({
     <>
       {/* Mobile Overlay */}
       {!isCollapsed && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-100 lg:hidden"
           onClick={onToggleCollapse}
         />
       )}
 
-      {/* Sidebar - Extended to reach header */}
+      {/* Sidebar */}
       <aside
         className={`
           fixed top-0 left-0 h-full bg-card border-r border-border z-150 shadow-soft
@@ -128,7 +123,7 @@ const Sidebar = ({
         `}
       >
         <div className="flex flex-col h-full">
-          {/* Logo Section - Enhanced with full header height */}
+          {/* Logo Section */}
           <div className={`flex items-center h-16 px-6 border-b border-border bg-muted/30 ${isCollapsed ? 'lg:px-4 lg:justify-center' : ''}`}>
             <Link href="/compliance-dashboard-overview" className="flex items-center space-x-3">
               <div className="w-9 h-9 bg-gradient-to-br from-primary to-primary/80 rounded-xl flex items-center justify-center shadow-soft ring-1 ring-primary/20">
@@ -143,7 +138,7 @@ const Sidebar = ({
             </Link>
           </div>
 
-          {/* Navigation - Modern Style */}
+          {/* Navigation */}
           <nav className="flex-1 px-4 py-8 overflow-y-auto">
             <div className="space-y-2">
               {navigationItems.map((item) => {
@@ -154,8 +149,8 @@ const Sidebar = ({
                       href={item.path}
                       className={`
                         group flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
-                        ${active 
-                          ? 'bg-primary text-primary-foreground shadow-soft' 
+                        ${active
+                          ? 'bg-primary text-primary-foreground shadow-soft'
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
                         }
                         ${isCollapsed ? 'lg:justify-center lg:px-3' : ''}
@@ -163,9 +158,9 @@ const Sidebar = ({
                       onMouseEnter={() => setHoveredItem(item.path)}
                       onMouseLeave={() => setHoveredItem(null)}
                     >
-                      <Icon 
-                        name={item.icon} 
-                        size={20} 
+                      <Icon
+                        name={item.icon}
+                        size={20}
                         className={`flex-shrink-0 ${isCollapsed ? '' : 'mr-3'}`}
                       />
                       {!isCollapsed && (
@@ -183,7 +178,7 @@ const Sidebar = ({
                       )}
                     </Link>
 
-                    {/* Enhanced Tooltip for collapsed state */}
+                    {/* Tooltip for collapsed state */}
                     {isCollapsed && hoveredItem === item.path && (
                       <div className="absolute left-full top-0 ml-3 px-4 py-3 bg-popover border border-border rounded-xl shadow-large z-300 min-w-56">
                         <div className="font-semibold text-foreground text-sm">{item.label}</div>
@@ -205,15 +200,15 @@ const Sidebar = ({
             </div>
           </nav>
 
-          {/* Collapse Toggle (Desktop) - Modern */}
+          {/* Collapse Toggle (Desktop) */}
           <div className="hidden lg:block p-4 border-t border-border bg-muted/20">
             <button
               onClick={onToggleCollapse}
               className="w-full flex items-center justify-center px-4 py-3 text-muted-foreground hover:text-foreground hover:bg-muted/60 rounded-xl transition-all duration-200 focus-ring"
             >
-              <Icon 
-                name={isCollapsed ? "ChevronRightIcon" : "ChevronLeftIcon"} 
-                size={20} 
+              <Icon
+                name={isCollapsed ? "ChevronRightIcon" : "ChevronLeftIcon"}
+                size={20}
               />
               {!isCollapsed && (
                 <span className="ml-3 text-sm font-medium">Collapse</span>
@@ -221,7 +216,7 @@ const Sidebar = ({
             </button>
           </div>
 
-          {/* User Status (Enhanced) */}
+          {/* User Status */}
           {!isCollapsed && (
             <div className="p-4 border-t border-border bg-muted/20">
               <div className="flex items-center space-x-3 p-4 bg-success/10 rounded-xl border border-success/20">

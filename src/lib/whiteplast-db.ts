@@ -284,21 +284,56 @@ export function numberToWords(amount: number): string {
     'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
   const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-  function convert(n: number): string {
+  // Convert a number < 1000 to words, with optional "and" before last two digits
+  function convertHundreds(n: number): string {
     if (n === 0) return '';
-    if (n < 20) return ones[n] + ' ';
-    if (n < 100) return tens[Math.floor(n / 10)] + ' ' + ones[n % 10] + ' ';
-    if (n < 1000) return ones[Math.floor(n / 100)] + ' Hundred ' + convert(n % 100);
-    if (n < 100000) return convert(Math.floor(n / 1000)) + 'Thousand ' + convert(n % 1000);
-    if (n < 10000000) return convert(Math.floor(n / 100000)) + 'Lakh ' + convert(n % 100000);
-    return convert(Math.floor(n / 10000000)) + 'Crore ' + convert(n % 10000000);
+    if (n < 20) return ones[n];
+    if (n < 100) {
+      const t = tens[Math.floor(n / 10)];
+      const o = ones[n % 10];
+      return o ? `${t} ${o}` : t;
+    }
+    const h = ones[Math.floor(n / 100)] + ' Hundred';
+    const rem = n % 100;
+    if (rem === 0) return h;
+    return `${h} and ${convertHundreds(rem)}`;
+  }
+
+  function convert(n: number): string {
+    if (n === 0) return 'Zero';
+    const crore = Math.floor(n / 10000000);
+    const lakh = Math.floor((n % 10000000) / 100000);
+    const thousand = Math.floor((n % 100000) / 1000);
+    const remainder = n % 1000;
+
+    const parts: string[] = [];
+    if (crore > 0) parts.push(convertHundreds(crore) + ' Crore');
+    if (lakh > 0) parts.push(convertHundreds(lakh) + ' Lakh');
+    if (thousand > 0) parts.push(convertHundreds(thousand) + ' Thousand');
+    if (remainder > 0) parts.push(convertHundreds(remainder));
+
+    if (parts.length === 0) return 'Zero';
+    if (parts.length === 1) return parts[0];
+
+    // Join: use "and" before the last part only if the last part is < 100 (i.e. no hundreds)
+    const last = parts[parts.length - 1];
+    const allButLast = parts.slice(0, -1).join(' ');
+    // Use "and" before last segment if it doesn't contain "Hundred", "Thousand", "Lakh", "Crore"
+    const lastIsSmall = !last.includes('Hundred') && !last.includes('Thousand') && !last.includes('Lakh') && !last.includes('Crore');
+    if (lastIsSmall) {
+      return `${allButLast} and ${last}`;
+    }
+    return parts.join(' ');
   }
 
   const rupees = Math.floor(amount);
   const paise = Math.round((amount - rupees) * 100);
-  let result = convert(rupees).trim();
-  if (paise > 0) result += ` and ${convert(paise).trim()} Paise`;
-  return result + ' Only';
+  let result = convert(rupees);
+  if (paise > 0) {
+    const paiseWords = convertHundreds(paise);
+    result += ` and ${paiseWords} Paise`;
+  }
+  return `${result} Rupees only`;
 }
 
 // ─── Backup / Restore ─────────────────────────────────────────────────────────

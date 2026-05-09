@@ -307,10 +307,7 @@ const RiskMonitoringInteractive = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar 
-        isCollapsed={sidebarCollapsed} 
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)} 
-      />
+      <Sidebar />
       
       <main className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'ml-0 lg:ml-64'} pt-16`}>
         <div className="flex">
@@ -327,7 +324,7 @@ const RiskMonitoringInteractive = () => {
           {/* Main Content */}
           <div className="flex-1 p-6">
             <div className="mb-6">
-              <Breadcrumb />
+              <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Risk Monitoring' }]} />
               <div className="flex items-center justify-between mt-4">
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">Risk Monitoring Dashboard</h1>

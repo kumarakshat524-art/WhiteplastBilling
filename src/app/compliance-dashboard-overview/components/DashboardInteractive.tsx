@@ -279,16 +279,13 @@ const DashboardInteractive = ({}: DashboardInteractiveProps) => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar 
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
+      <Sidebar />
       
       <main className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'ml-0 lg:ml-60'} mt-16`}>
         <div className="p-6">
           {/* Breadcrumb */}
           <div className="mb-6">
-            <Breadcrumb />
+            <Breadcrumb items={[{ label: 'Dashboard', href: '/' }]} />
           </div>
 
           {/* Page Header */}

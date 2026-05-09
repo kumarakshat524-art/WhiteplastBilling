@@ -353,16 +353,13 @@ const AnalyticsDashboardInteractive = ({}: AnalyticsDashboardInteractiveProps) =
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar 
-        isCollapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
+      <Sidebar />
       
       <main className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'} pt-16`}>
         <div className="p-6">
           {/* Header Section */}
           <div className="mb-6">
-            <Breadcrumb />
+            <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Compliance Analytics Dashboard' }]} />
             <div className="flex items-center justify-between mt-4">
               <div>
                 <h1 className="text-2xl font-bold text-foreground mb-2">Compliance Analytics Dashboard</h1>

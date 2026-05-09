@@ -26,6 +26,7 @@ interface SecuritySettings {
 const UserProfilePage = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'activity'>('profile');
   const [isEditing, setIsEditing] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   
   const [userProfile, setUserProfile] = useState<UserProfile>({
     id: 'usr_001',

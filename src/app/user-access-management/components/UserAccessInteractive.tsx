@@ -349,10 +349,7 @@ const UserAccessInteractive = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <Sidebar 
-        isCollapsed={isSidebarCollapsed} 
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
-      />
+      <Sidebar />
       
       <main className={`
         transition-all duration-300 pt-16
@@ -360,7 +357,7 @@ const UserAccessInteractive = () => {
       `}>
         <div className="p-6">
           <div className="mb-6">
-            <Breadcrumb />
+            <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'User Access Management' }]} />
             <div className="mt-4">
               <h1 className="text-2xl font-bold text-foreground">User Access Management</h1>
               <p className="text-muted-foreground mt-1">
